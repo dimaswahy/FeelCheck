@@ -48,7 +48,9 @@ class ExamplePage extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Image.asset(
-                  'assets/gambar/example.jpg',
+                  'assets/gambar/contoh.png',
+                  width: 250,
+                  height: 250,
                   fit: BoxFit.cover,
                 ),
               ),
