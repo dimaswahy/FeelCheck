@@ -189,7 +189,9 @@ class _KameraPageState extends State<KameraPage> {
               ),
             ),
             const SizedBox(height: 1),
-            Center(child: Image.asset('assets/logo/logo.png', width: 100)),
+            Center(child: 
+            Image.asset('assets/logo/logo edit.png', width: 100)),
+            const SizedBox(height: 20),
             const SizedBox(height: 1),
             const Text(
               "Selamat Datang Di FeelCheck",

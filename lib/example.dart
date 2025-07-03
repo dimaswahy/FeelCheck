@@ -7,17 +7,13 @@ class ExamplePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromRGBO(27, 153, 203, 1),
+        backgroundColor: Colors.blue[600],
         centerTitle: true,
         title: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/logo/logo.png',
-              width: 32,
-              height: 32,
-            ),
+            
             const SizedBox(width: 8),
             const Text(
               'FeelCheck',
@@ -41,7 +37,7 @@ class ExamplePage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color.fromRGBO(27, 153, 203, 1),
+                  color: Color(0xFF1E88E5), // Equivalent to Colors.blue[600]
                 ),
               ),
               const SizedBox(height: 24),
@@ -88,7 +84,7 @@ class ExamplePage extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromRGBO(27, 153, 203, 1), // warna tombol
+                    backgroundColor: Colors.blue[600], // warna tombol
                     foregroundColor: Colors.white, // warna teks
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -111,3 +107,4 @@ class ExamplePage extends StatelessWidget {
     );
   }
 }
+
