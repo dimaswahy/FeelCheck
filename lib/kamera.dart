@@ -1,3 +1,4 @@
+import 'package:feelcheck/main.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -14,7 +15,7 @@ class KameraPage extends StatefulWidget {
   State<KameraPage> createState() => _KameraPageState();
 }
 
-class _KameraPageState extends State<KameraPage> {
+class _KameraPageState extends State<KameraPage> with RouteAware {
   File? _capturedImage;
   File? _faceOnlyImage;
   final ImagePicker _picker = ImagePicker();
@@ -23,6 +24,7 @@ class _KameraPageState extends State<KameraPage> {
   String _confidenceText = "N/A";
 
   late final FaceDetector _faceDetector;
+  bool _disclaimerShown = false;
 
   @override
   void initState() {
@@ -37,9 +39,66 @@ class _KameraPageState extends State<KameraPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ModalRoute.of(context)?.isCurrent ?? false) {
+        if (!_disclaimerShown) {
+          _showDisclaimer();
+          _disclaimerShown = true;
+        }
+      }
+    });
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
   void dispose() {
     _faceDetector.close();
+    routeObserver.unsubscribe(this);
     super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    _showDisclaimer();
+  }
+
+  Future<void> _showDisclaimer() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.info_outline, size: 32, color: Colors.blue[700]),
+              const SizedBox(width: 30),
+              
+              const Text('Pemberitahuan'),
+              const SizedBox(height: 50),
+            ],
+            
+          ),
+          content: const SingleChildScrollView(
+            child: Text(
+              '• Aplikasi ini hanya untuk keperluan pemantauan ekspresi wajah.\n'
+              '• Dapat mendeteksi 5 ekspresi: Senang, Sedih, Marah, Terkejut, Bosan.\n'
+              '• FeelCheck menjaga privasi Anda dan tidak menyimpan gambar di server manapun.\n\n'
+              'Dengan melanjutkan, Anda menyetujui ketentuan penggunaan fitur ini.',
+              
+              style: TextStyle(fontSize: 15, height: 1.4),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Saya Mengerti'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -76,13 +135,12 @@ class _KameraPageState extends State<KameraPage> {
       final face = faces.first;
       final boundingBox = face.boundingBox;
 
-      final cropped = img.copyCrop(
-        decodedImage,
-        x: boundingBox.left.toInt().clamp(0, decodedImage.width),
-        y: boundingBox.top.toInt().clamp(0, decodedImage.height),
-        width: boundingBox.width.toInt().clamp(0, decodedImage.width),
-        height: boundingBox.height.toInt().clamp(0, decodedImage.height),
-      );
+      final cropX = boundingBox.left.toInt().clamp(0, decodedImage.width - 1);
+      final cropY = boundingBox.top.toInt().clamp(0, decodedImage.height - 1);
+      final cropW = boundingBox.width.toInt().clamp(1, decodedImage.width - cropX);
+      final cropH = boundingBox.height.toInt().clamp(1, decodedImage.height - cropY);
+
+      final cropped = img.copyCrop(decodedImage, x: cropX, y: cropY, width: cropW, height: cropH);
 
       final tempDir = await Directory.systemTemp.createTemp();
       final croppedFile = File('${tempDir.path}/face.png');
@@ -145,7 +203,7 @@ class _KameraPageState extends State<KameraPage> {
                 ),
                 const SizedBox(height: 20),
                 ListTile(
-                  leading: Icon(Icons.photo_library, color: Colors.blue),
+                  leading: const Icon(Icons.photo_library, color: Colors.blue),
                   title: const Text('Galeri'),
                   onTap: () {
                     Navigator.of(context).pop();
@@ -153,7 +211,7 @@ class _KameraPageState extends State<KameraPage> {
                   },
                 ),
                 ListTile(
-                  leading: Icon(Icons.photo_camera, color: Colors.green),
+                  leading: const Icon(Icons.photo_camera, color: Colors.green),
                   title: const Text('Kamera'),
                   onTap: () {
                     Navigator.of(context).pop();
@@ -173,136 +231,138 @@ class _KameraPageState extends State<KameraPage> {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(top: 40, left: 24, right: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const Center(
-              child: Text(
-                "FeelCheck",
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.bold,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.black,
-                  fontFamily: 'Cursive',
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const Center(
+                child: Text(
+                  "FeelCheck",
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.black,
+                    fontFamily: 'Cursive',
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 1),
-            Center(child: 
-            Image.asset('assets/logo/logo edit.png', width: 100)),
-            const SizedBox(height: 20),
-            const SizedBox(height: 1),
-            const Text(
-              "Selamat Datang Di FeelCheck",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 35),
-            Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[300]!, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 2,
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+              const SizedBox(height: 1),
+              Center(
+                child: Image.asset('assets/logo/logo edit.png', width: 100),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: _isProcessing
-                    ? const Center(child: CircularProgressIndicator())
-                    : _faceOnlyImage != null
-                        ? Image.file(_faceOnlyImage!, fit: BoxFit.cover)
-                        : const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.image, size: 64, color: Colors.grey),
-                                SizedBox(height: 12),
-                                Text(
-                                  'Gambar Belum Diunggah',
-                                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                                ),
-                              ],
+              const SizedBox(height: 20),
+              const Text(
+                "Selamat Datang Di FeelCheck",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 35),
+              Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[300]!, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 2,
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: _isProcessing
+                      ? const Center(child: CircularProgressIndicator())
+                      : _faceOnlyImage != null
+                          ? Image.file(_faceOnlyImage!, fit: BoxFit.cover)
+                          : const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.image, size: 64, color: Colors.grey),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'Gambar Belum Diunggah',
+                                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                                  ),
+                                ],
+                              ),
                             ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Emosi:', style: TextStyle(color: Colors.grey)),
+                        Text(_resultText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Kepercayaan:', style: TextStyle(color: Colors.grey)),
+                        Text(_confidenceText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: _isProcessing ? null : _showImagePickerOptions,
+                  icon: _isProcessing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Emosi:', style: TextStyle(color: Colors.grey)),
-                      Text(_resultText, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
+                        )
+                      : const Icon(Icons.camera_alt_outlined, color: Colors.white),
+                  label: Text(
+                    _isProcessing ? 'Memproses...' : 'Unggah Gambar',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Kepercayaan:', style: TextStyle(color: Colors.grey)),
-                      Text(_confidenceText, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[600],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _showImagePickerOptions,
-                icon: _isProcessing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Icon(Icons.camera_alt_outlined, color: Colors.white),
-                label: Text(
-                  _isProcessing ? 'Memproses...' : 'Unggah Gambar',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/example'),
-              child: const Text(
-                'Lihat Contoh Gambar Yang Disarankan?',
-                style: TextStyle(color: Color(0xFF02243D), fontWeight: FontWeight.w500),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/example'),
+                child: const Text(
+                  'Lihat Contoh Gambar Yang Disarankan?',
+                  style: TextStyle(color: Color(0xFF02243D), fontWeight: FontWeight.w500),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
