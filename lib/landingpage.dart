@@ -43,7 +43,7 @@ class _LandingpageState extends State<Landingpage> {
                 ),
                 const SizedBox(height: 100),
                 const Text(
-                  'CEK EKSPRESI SISWA/SISWI ANDA',
+                  'CEK EKSPRESI ANDA',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 22,
